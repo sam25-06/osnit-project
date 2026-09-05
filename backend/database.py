@@ -3,7 +3,11 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from motor.motor_asyncio import AsyncClient, AsyncDatabase, AsyncCollection
+from motor.motor_asyncio import (
+    AsyncIOMotorClient,
+    AsyncIOMotorCollection,
+    AsyncIOMotorDatabase,
+)
 
 # MongoDB connection
 MONGODB_URL = os.getenv(
@@ -13,15 +17,15 @@ MONGODB_URL = os.getenv(
 DATABASE_NAME = os.getenv("DATABASE_NAME", "intel_dashboard")
 
 # Create MongoDB client
-client: AsyncClient = None
-db: AsyncDatabase = None
+client: AsyncIOMotorClient | None = None
+db: AsyncIOMotorDatabase | None = None
 
 
 async def connect_to_mongo():
     """Connect to MongoDB on app startup"""
     global client, db
     try:
-        client = AsyncClient(MONGODB_URL)
+        client = AsyncIOMotorClient(MONGODB_URL)
         db = client[DATABASE_NAME]
         # Verify connection
         await client.admin.command('ping')
@@ -61,19 +65,19 @@ async def create_indexes():
         print(f"Error creating indexes: {e}")
 
 
-def get_database() -> AsyncDatabase:
+def get_database() -> AsyncIOMotorDatabase:
     """Get the MongoDB database instance"""
     if db is None:
         raise RuntimeError("Database not initialized. Call connect_to_mongo() first.")
     return db
 
 
-def get_officers_collection() -> AsyncCollection:
+def get_officers_collection() -> AsyncIOMotorCollection:
     """Get the officers collection"""
     return get_database()["officers"]
 
 
-def get_threats_collection() -> AsyncCollection:
+def get_threats_collection() -> AsyncIOMotorCollection:
     """Get the threat_posts collection"""
     return get_database()["threat_posts"]
 

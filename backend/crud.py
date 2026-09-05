@@ -1,16 +1,16 @@
 # crud.py
 """MongoDB CRUD operations using Motor (async MongoDB driver)"""
 from bson import ObjectId
-from motor.motor_asyncio import AsyncCollection
+from motor.motor_asyncio import AsyncIOMotorCollection
 
 import models
 import schemas
-from auth import hash_password
+from password_utils import hash_password
 
 
 # ---------- Officer ----------
 async def get_officer_by_email(
-    collection: AsyncCollection, email: str
+    collection: AsyncIOMotorCollection, email: str
 ) -> models.Officer | None:
     """Get officer by email"""
     doc = await collection.find_one({"email": email})
@@ -18,7 +18,7 @@ async def get_officer_by_email(
 
 
 async def get_officer_by_id(
-    collection: AsyncCollection, officer_id: str
+    collection: AsyncIOMotorCollection, officer_id: str
 ) -> models.Officer | None:
     """Get officer by ID"""
     try:
@@ -29,7 +29,7 @@ async def get_officer_by_id(
 
 
 async def create_officer(
-    collection: AsyncCollection, officer_in: schemas.OfficerCreate
+    collection: AsyncIOMotorCollection, officer_in: schemas.OfficerCreate
 ) -> models.Officer:
     """Create new officer"""
     officer_dict = {
@@ -46,7 +46,7 @@ async def create_officer(
 
 # ---------- ThreatPost ----------
 async def create_threat_post(
-    collection: AsyncCollection, post_in: schemas.ThreatPostCreate
+    collection: AsyncIOMotorCollection, post_in: schemas.ThreatPostCreate
 ) -> models.ThreatPost:
     """Create new threat post"""
     threat_dict = post_in.model_dump()
@@ -58,7 +58,7 @@ async def create_threat_post(
 
 
 async def get_threat_post(
-    collection: AsyncCollection, post_id: str
+    collection: AsyncIOMotorCollection, post_id: str
 ) -> models.ThreatPost | None:
     """Get threat post by ID"""
     try:
@@ -69,7 +69,7 @@ async def get_threat_post(
 
 
 async def list_threat_posts(
-    collection: AsyncCollection,
+    collection: AsyncIOMotorCollection,
     skip: int = 0,
     limit: int = 50,
     min_threat_level: int | None = None,
@@ -95,7 +95,7 @@ async def list_threat_posts(
 
 
 async def update_threat_post(
-    collection: AsyncCollection, post_id: str, post_in: schemas.ThreatPostUpdate
+    collection: AsyncIOMotorCollection, post_id: str, post_in: schemas.ThreatPostUpdate
 ) -> models.ThreatPost | None:
     """Update threat post"""
     try:
