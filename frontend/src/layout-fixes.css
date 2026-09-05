@@ -1,0 +1,40 @@
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.pagination > div { display: flex; gap: 7px; }
+.pagination button { border: 1px solid var(--line); border-radius: 4px; padding: 8px 11px; color: var(--ink); background: var(--paper); font-size: 12px; }
+.pagination button:hover:not(:disabled) { color: var(--terracotta-dark); border-color: #d5a796; background: #f3ddd2; }
+.pagination button:disabled { color: var(--soft); cursor: not-allowed; opacity: .65; }
+.console-shell { height: 100vh; overflow: hidden; }
+.sidebar, .main-panel { height: 100vh; }
+.main-panel { overflow-y: auto; }
+.feed-panel { min-height: 0; }
+.watchlist-layout { min-height: 0; }
+/* Keep dashboard modules readable at every width. */
+.insight-panel { min-width: 0; overflow: hidden; }
+.risk-ring { flex: 0 0 145px; width: 145px !important; height: 145px !important; min-width: 145px; min-height: 145px; }
+.risk-ring > div { display: grid !important; width: auto; }
+.risk-legend { display: grid; gap: 0; }
+.risk-legend .legend-row { display: flex !important; align-items: center; justify-content: space-between; width: 100%; gap: 16px; white-space: nowrap; }
+.risk-legend .legend-row span { display: flex !important; align-items: center; gap: 8px; }
+.risk-legend .legend-row strong { display: block; margin-left: auto; }
+.analyst-note { align-items: flex-start; }
+.analyst-note > div { min-width: 0; flex: 1; }
+.analyst-note strong, .analyst-note span:last-child { display: block !important; white-space: normal; }
+.connection-mark { width: 8px; height: 8px; display: inline-block; border: 1px solid var(--olive); background: var(--olive-soft); }
+.live-pill, .heading-action { gap: 0; }
+.threat-row { width: 100%; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; color: inherit; font: inherit; cursor: pointer; }
+.threat-row.selected { background: var(--olive-soft); box-shadow: inset 3px 0 0 var(--terracotta); }
+.channel-select { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; }
+.channel-select select { border: 1px solid var(--line); border-radius: 5px; padding: 8px 28px 8px 10px; color: var(--ink); background: var(--paper); font: inherit; font-size: 12px; }
+.detail-panel { align-self: start; min-width: 0; padding: 26px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: var(--card); }
+.empty-detail { min-height: 265px; }.detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 19px; border-bottom: 1px solid var(--line); }.detail-header h2 { margin: 0; color: var(--ink); font-size: 20px; }.detail-status { padding: 5px 8px; border-radius: 4px; color: var(--olive); background: var(--olive-soft); font-size: 11px; }.detail-status.open { color: var(--terracotta-dark); background: #f3ddd2; }.detail-content { margin: 23px 0; color: var(--ink); font-size: 16px; line-height: 1.55; }.detail-facts { display: grid; gap: 13px; }.detail-facts div { display: flex; justify-content: space-between; gap: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--paper-deep); }.detail-facts span { color: var(--muted); font-size: 12px; }.detail-facts strong { color: var(--ink); font-size: 12px; font-weight: 600; text-align: right; }.review-button { width: 100%; margin-top: 24px; border: 0; border-radius: 5px; padding: 13px; color: #fffaf3; background: var(--terracotta); font-size: 13px; font-weight: 600; }.review-button:hover { background: var(--terracotta-dark); }.review-button:disabled { opacity: .6; cursor: wait; }
+.analysis-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; padding: 28px; border: 1px solid var(--line); border-radius: 9px; background: var(--olive-soft); }.analysis-hero h2 { margin: 0; color: var(--ink); font-size: 24px; }.analysis-hero p:last-child { max-width: 580px; margin: 9px 0 0; color: var(--muted); font-size: 14px; }.analysis-callout { min-width: 150px; padding-left: 24px; border-left: 1px solid #bac8ae; }.analysis-callout strong { display: block; color: var(--terracotta-dark); font-size: 38px; }.analysis-callout span { color: var(--muted); font-size: 12px; }.analysis-grid { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 18px; }.analysis-card { min-height: 210px; padding: 24px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }.progress-number { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 18px; }.progress-number strong { color: var(--terracotta-dark); font-size: 48px; font-weight: 500; }.progress-number span { color: var(--muted); font-size: 13px; }.progress-track, .channel-bar { height: 9px; overflow: hidden; border-radius: 99px; background: var(--paper-deep); }.progress-track span, .channel-bar i { display: block; height: 100%; border-radius: inherit; background: var(--terracotta); }.analysis-note { margin-top: 12px; color: var(--muted); font-size: 12px; }.channel-row { display: grid; grid-template-columns: 72px 1fr 25px; align-items: center; gap: 10px; margin: 17px 0; color: var(--ink); font-size: 12px; text-transform: capitalize; }.channel-row strong { color: var(--muted); font-size: 12px; text-align: right; }.channel-bar i { background: var(--olive); }.mix-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--paper-deep); color: var(--ink); font-size: 13px; }.mix-row strong { margin-left: auto; font-size: 14px; }.watchlist-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; }.watch-tabs { display: flex; gap: 5px; }.watch-tabs button { border: 1px solid var(--line); border-radius: 4px; padding: 8px 10px; color: var(--muted); background: transparent; font-size: 11px; }.watch-tabs button.active { color: var(--terracotta-dark); border-color: #d5a796; background: #f3ddd2; }.watchlist-copy { padding: 17px 26px; color: var(--muted); border-bottom: 1px solid var(--line); font-size: 13px; }
+
+@media (max-width: 720px) {
+  .console-shell { height: auto; min-height: 100vh; overflow: visible; }
+  .sidebar, .main-panel { height: auto; }
+  .main-panel { overflow: visible; }
+  .feed-layout { display: block; }
+  .insight-panel { display: none !important; }
+  .feed-panel { width: 100%; }
+  .analysis-hero { display: block; padding: 21px; }.analysis-callout { margin-top: 22px; padding: 0; border: 0; }.analysis-grid, .watchlist-layout { grid-template-columns: 1fr; }.detail-panel { order: -1; }.channel-select span { display: none; }.channel-select select { max-width: 130px; }
+}
