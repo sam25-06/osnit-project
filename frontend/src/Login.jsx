@@ -1,6 +1,5 @@
-// Login.jsx
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 
 export default function Login() {
@@ -8,126 +7,44 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = location.state?.from?.pathname || "/dashboard";
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setFormError(null);
     setIsSubmitting(true);
     try {
       await login(email, password);
       navigate(redirectTo, { replace: true });
-    } catch (err) {
-      setFormError(err.message || "Authentication failed.");
+    } catch (error) {
+      setFormError(error.message || "Authentication failed.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="min-h-screen w-full bg-slate-950 flex items-center justify-center px-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-cyan-900/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative w-full max-w-md">
-        <div className="bg-slate-900/80 backdrop-blur border border-slate-800 rounded-2xl shadow-2xl p-8">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-12 h-12 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6 text-cyan-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.745 3.745 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"
-                />
-              </svg>
-            </div>
-            <h1 className="text-slate-100 text-xl font-semibold tracking-tight">
-              Intelligence Dashboard
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Authorized personnel only
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5"
-              >
-                Official Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                autoComplete="username"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="officer@agency.gov"
-                className="w-full rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 placeholder-slate-600 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-medium text-slate-400 uppercase tracking-wide mb-1.5"
-              >
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full rounded-lg bg-slate-950/60 border border-slate-700 text-slate-100 placeholder-slate-600 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition"
-              />
-            </div>
-
-            {formError && (
-              <div className="rounded-lg bg-red-950/40 border border-red-900/60 px-3.5 py-2.5">
-                <p className="text-red-400 text-sm">{formError}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-medium text-sm py-2.5 transition flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                  Authenticating...
-                </>
-              ) : (
-                "Secure Sign In"
-              )}
-            </button>
-          </form>
-
-          <p className="text-center text-slate-600 text-xs mt-6">
-            This system is monitored. Unauthorized access is prohibited.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  return <main className="login-shell">
+    <div className="login-atmosphere"><span className="orbit orbit-one" /><span className="orbit orbit-two" /><span className="grid-glow" /></div>
+    <section className="login-brief">
+      <div className="brand-lockup login-brand"><div className="brand-mark"><span /></div><div><p className="brand-name">OSNIT</p><p className="brand-caption">Operational intelligence</p></div></div>
+      <div className="brief-copy"><p className="eyebrow">Secure access / 07</p><h1>See the signal<br /><i>before it spreads.</i></h1><p>One clear operating picture for the moments that demand precision.</p></div>
+      <div className="brief-footer"><span>Classification: internal</span><span>System status <i /></span></div>
+    </section>
+    <section className="login-card-wrap"><div className="login-card">
+      <div className="card-topline"><span>IDENTITY VERIFICATION</span><span>01—02</span></div>
+      <div className="login-heading"><h2>Welcome back.</h2><p>Sign in to access your operational workspace.</p></div>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="email">Official email <span>Required</span></label>
+        <div className="input-shell"><span className="input-prefix">@</span><input id="email" type="email" required autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="officer@agency.gov" /></div>
+        <label htmlFor="password">Passphrase <span>Required</span></label>
+        <div className="input-shell"><span className="input-prefix">⌁</span><input id="password" type="password" required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your passphrase" /></div>
+        {formError && <div className="form-error">{formError}</div>}
+        <button className="login-submit" type="submit" disabled={isSubmitting}>{isSubmitting ? <><span className="button-spinner" />Verifying identity...</> : <>Enter workspace <span>↗</span></>}</button>
+      </form>
+      <div className="login-card-footer"><span className="lock-symbol">▣</span><p>Protected by encrypted session controls.<br />Activity is recorded for operational review.</p></div>
+    </div><p className="login-help">Need access assistance? <span>Contact your system administrator</span></p></section>
+  </main>;
 }
