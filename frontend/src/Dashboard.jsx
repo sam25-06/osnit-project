@@ -6,7 +6,7 @@ const WS_BASE_URL = import.meta.env.VITE_WS_BASE_URL || "ws://localhost:8000";
 const MAX_RECONNECT_DELAY_MS = 15000;
 
 export default function Dashboard() {
-  const { token, officer, logout } = useAuth();
+  const { token, officer, logout, apiBaseUrl } = useAuth();
   const [threats, setThreats] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState("connecting"); // connecting | open | closed | error
 
@@ -14,6 +14,20 @@ export default function Dashboard() {
   const reconnectAttemptRef = useRef(0);
   const reconnectTimeoutRef = useRef(null);
   const isUnmountingRef = useRef(false);
+
+  useEffect(() => {
+    if (!token) return;
+
+    fetch(`${apiBaseUrl}/threats?limit=200`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load threat history");
+        return response.json();
+      })
+      .then((data) => setThreats(data.items ?? []))
+      .catch(() => setThreats([]));
+  }, [apiBaseUrl, token]);
 
   const connect = useCallback(() => {
     if (!token) return;

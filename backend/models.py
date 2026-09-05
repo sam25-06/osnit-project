@@ -6,17 +6,25 @@ These define the structure of documents stored in MongoDB.
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field
+from pydantic_core import core_schema
 from bson import ObjectId
 
 
 class PyObjectId(ObjectId):
     """Custom type for MongoDB ObjectId serialization"""
     @classmethod
+    def __get_pydantic_core_schema__(cls, _source_type, _handler):
+        return core_schema.no_info_plain_validator_function(
+            cls.validate,
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
+        )
+
+    @classmethod
     def __get_validators__(cls):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, _info=None):
         if isinstance(v, ObjectId):
             return v
         if isinstance(v, str):

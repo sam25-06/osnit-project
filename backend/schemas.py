@@ -3,17 +3,25 @@ from datetime import datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic_core import core_schema
 from bson import ObjectId
 
 
 class PyObjectId(ObjectId):
     """Custom Pydantic ObjectId type for JSON serialization"""
     @classmethod
+    def __get_pydantic_core_schema__(cls, _source_type, _handler):
+        return core_schema.no_info_plain_validator_function(
+            cls.validate,
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
+        )
+
+    @classmethod
     def __get_validators__(cls):
         yield cls.validate
 
     @classmethod
-    def validate(cls, v):
+    def validate(cls, v, _info=None):
         if isinstance(v, cls):
             return v
         if isinstance(v, ObjectId):

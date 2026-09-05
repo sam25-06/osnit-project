@@ -8,6 +8,9 @@ from motor.motor_asyncio import (
     AsyncIOMotorCollection,
     AsyncIOMotorDatabase,
 )
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # MongoDB connection
 MONGODB_URL = os.getenv(
