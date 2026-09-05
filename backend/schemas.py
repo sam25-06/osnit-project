@@ -1,9 +1,24 @@
-# schemas.py
-import uuid
+"""Request/Response Pydantic schemas for MongoDB"""
 from datetime import datetime
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from bson import ObjectId
+
+
+class PyObjectId(ObjectId):
+    """Custom Pydantic ObjectId type for JSON serialization"""
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if isinstance(v, cls):
+            return v
+        if isinstance(v, ObjectId):
+            return cls(v)
+        return cls(v)
 
 
 # ---------- Officer ----------
@@ -19,7 +34,7 @@ class OfficerCreate(OfficerBase):
 class OfficerRead(OfficerBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: uuid.UUID
+    id: PyObjectId
     is_active: bool
 
 
@@ -67,7 +82,7 @@ class ThreatPostUpdate(BaseModel):
 class ThreatPostRead(ThreatPostBase):
     model_config = ConfigDict(from_attributes=True)
 
-    id: uuid.UUID
+    id: PyObjectId
     timestamp: datetime
     is_resolved: bool
 

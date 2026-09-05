@@ -1,4 +1,4 @@
-# auth.py
+"""Authentication and authorization logic for MongoDB"""
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -6,11 +6,10 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from sqlalchemy.ext.asyncio import AsyncSession
 
 import crud
 import models
-from database import get_db
+from database import get_officers_collection
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "CHANGE_ME_IN_PRODUCTION")
 ALGORITHM = "HS256"
@@ -27,14 +26,17 @@ credentials_exception = HTTPException(
 
 
 def hash_password(password: str) -> str:
+    """Hash a password using bcrypt"""
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def create_access_token(subject: str, clearance_level: int) -> tuple[str, int]:
+    """Create JWT access token"""
     expire_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     expire = datetime.now(timezone.utc) + expire_delta
     payload = {
@@ -47,9 +49,10 @@ def create_access_token(subject: str, clearance_level: int) -> tuple[str, int]:
 
 
 async def authenticate_officer(
-    db: AsyncSession, email: str, password: str
+    officers_collection, email: str, password: str
 ) -> models.Officer | None:
-    officer = await crud.get_officer_by_email(db, email)
+    """Authenticate officer by email and password"""
+    officer = await crud.get_officer_by_email(officers_collection, email)
     if not officer or not officer.is_active:
         return None
     if not verify_password(password, officer.hashed_password):
@@ -58,9 +61,13 @@ async def authenticate_officer(
 
 
 async def get_current_officer(
+    officers_collection=None,
     token: str = Depends(oauth2_scheme),
-    db: AsyncSession = Depends(get_db),
 ) -> models.Officer:
+    """Get current officer from JWT token"""
+    if officers_collection is None:
+        officers_collection = get_officers_collection()
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str | None = payload.get("sub")
@@ -69,15 +76,16 @@ async def get_current_officer(
     except JWTError:
         raise credentials_exception
 
-    officer = await crud.get_officer_by_email(db, email)
+    officer = await crud.get_officer_by_email(officers_collection, email)
     if officer is None or not officer.is_active:
         raise credentials_exception
     return officer
 
 
-def require_clearance(minimum_level: int):
+def require_clearance(minimum_level: int, officers_collection_dep=None):
+    """Factory for creating clearance-level checkers"""
     async def _checker(
-        current_officer: models.Officer = Depends(get_current_officer),
+        current_officer: models.Officer = Depends(lambda: get_current_officer(officers_collection_dep)),
     ) -> models.Officer:
         if current_officer.clearance_level < minimum_level:
             raise HTTPException(

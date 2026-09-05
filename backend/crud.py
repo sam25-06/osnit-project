@@ -1,9 +1,7 @@
 # crud.py
-import uuid
-from typing import Sequence
-
-from sqlalchemy import func, select, update
-from sqlalchemy.ext.asyncio import AsyncSession
+"""MongoDB CRUD operations using Motor (async MongoDB driver)"""
+from bson import ObjectId
+from motor.motor_asyncio import AsyncCollection
 
 import models
 import schemas
@@ -11,90 +9,105 @@ from auth import hash_password
 
 
 # ---------- Officer ----------
-async def get_officer_by_email(db: AsyncSession, email: str) -> models.Officer | None:
-    result = await db.execute(
-        select(models.Officer).where(models.Officer.email == email)
-    )
-    return result.scalar_one_or_none()
+async def get_officer_by_email(
+    collection: AsyncCollection, email: str
+) -> models.Officer | None:
+    """Get officer by email"""
+    doc = await collection.find_one({"email": email})
+    return models.Officer(**doc) if doc else None
 
 
-async def get_officer_by_id(db: AsyncSession, officer_id: uuid.UUID) -> models.Officer | None:
-    result = await db.execute(
-        select(models.Officer).where(models.Officer.id == officer_id)
-    )
-    return result.scalar_one_or_none()
+async def get_officer_by_id(
+    collection: AsyncCollection, officer_id: str
+) -> models.Officer | None:
+    """Get officer by ID"""
+    try:
+        doc = await collection.find_one({"_id": ObjectId(officer_id)})
+        return models.Officer(**doc) if doc else None
+    except Exception:
+        return None
 
 
-async def create_officer(db: AsyncSession, officer_in: schemas.OfficerCreate) -> models.Officer:
-    officer = models.Officer(
-        email=officer_in.email,
-        hashed_password=hash_password(officer_in.password),
-        clearance_level=officer_in.clearance_level,
-    )
-    db.add(officer)
-    await db.commit()
-    await db.refresh(officer)
-    return officer
+async def create_officer(
+    collection: AsyncCollection, officer_in: schemas.OfficerCreate
+) -> models.Officer:
+    """Create new officer"""
+    officer_dict = {
+        "email": officer_in.email,
+        "hashed_password": hash_password(officer_in.password),
+        "clearance_level": officer_in.clearance_level,
+        "is_active": True,
+        "created_at": models.datetime.utcnow(),
+    }
+    result = await collection.insert_one(officer_dict)
+    officer_dict["_id"] = result.inserted_id
+    return models.Officer(**officer_dict)
 
 
 # ---------- ThreatPost ----------
 async def create_threat_post(
-    db: AsyncSession, post_in: schemas.ThreatPostCreate
+    collection: AsyncCollection, post_in: schemas.ThreatPostCreate
 ) -> models.ThreatPost:
-    post = models.ThreatPost(**post_in.model_dump())
-    db.add(post)
-    await db.commit()
-    await db.refresh(post)
-    return post
+    """Create new threat post"""
+    threat_dict = post_in.model_dump()
+    threat_dict["timestamp"] = models.datetime.utcnow()
+    threat_dict["is_resolved"] = False
+    result = await collection.insert_one(threat_dict)
+    threat_dict["_id"] = result.inserted_id
+    return models.ThreatPost(**threat_dict)
 
 
 async def get_threat_post(
-    db: AsyncSession, post_id: uuid.UUID
+    collection: AsyncCollection, post_id: str
 ) -> models.ThreatPost | None:
-    result = await db.execute(
-        select(models.ThreatPost).where(models.ThreatPost.id == post_id)
-    )
-    return result.scalar_one_or_none()
+    """Get threat post by ID"""
+    try:
+        doc = await collection.find_one({"_id": ObjectId(post_id)})
+        return models.ThreatPost(**doc) if doc else None
+    except Exception:
+        return None
 
 
 async def list_threat_posts(
-    db: AsyncSession,
+    collection: AsyncCollection,
     skip: int = 0,
     limit: int = 50,
     min_threat_level: int | None = None,
     is_resolved: bool | None = None,
-) -> tuple[Sequence[models.ThreatPost], int]:
-    query = select(models.ThreatPost)
-    count_query = select(func.count()).select_from(models.ThreatPost)
-
+) -> tuple[list[models.ThreatPost], int]:
+    """List threat posts with filtering and pagination"""
+    query = {}
+    
     if min_threat_level is not None:
-        query = query.where(models.ThreatPost.threat_level >= min_threat_level)
-        count_query = count_query.where(
-            models.ThreatPost.threat_level >= min_threat_level
-        )
+        query["threat_level"] = {"$gte": min_threat_level}
     if is_resolved is not None:
-        query = query.where(models.ThreatPost.is_resolved == is_resolved)
-        count_query = count_query.where(models.ThreatPost.is_resolved == is_resolved)
-
-    query = query.order_by(models.ThreatPost.timestamp.desc()).offset(skip).limit(limit)
-
-    result = await db.execute(query)
-    total_result = await db.execute(count_query)
-
-    return result.scalars().all(), total_result.scalar_one()
+        query["is_resolved"] = is_resolved
+    
+    # Get total count
+    total = await collection.count_documents(query)
+    
+    # Get paginated results
+    cursor = collection.find(query).sort("timestamp", -1).skip(skip).limit(limit)
+    docs = await cursor.to_list(length=limit)
+    
+    threats = [models.ThreatPost(**doc) for doc in docs]
+    return threats, total
 
 
 async def update_threat_post(
-    db: AsyncSession, post_id: uuid.UUID, post_in: schemas.ThreatPostUpdate
+    collection: AsyncCollection, post_id: str, post_in: schemas.ThreatPostUpdate
 ) -> models.ThreatPost | None:
-    values = post_in.model_dump(exclude_unset=True)
-    if not values:
-        return await get_threat_post(db, post_id)
-
-    await db.execute(
-        update(models.ThreatPost)
-        .where(models.ThreatPost.id == post_id)
-        .values(**values)
-    )
-    await db.commit()
-    return await get_threat_post(db, post_id)
+    """Update threat post"""
+    try:
+        values = post_in.model_dump(exclude_unset=True)
+        if not values:
+            return await get_threat_post(collection, post_id)
+        
+        result = await collection.find_one_and_update(
+            {"_id": ObjectId(post_id)},
+            {"$set": values},
+            return_document=True
+        )
+        return models.ThreatPost(**result) if result else None
+    except Exception:
+        return None

@@ -3,78 +3,86 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
+from motor.motor_asyncio import AsyncClient, AsyncDatabase, AsyncCollection
+
+# MongoDB connection
+MONGODB_URL = os.getenv(
+    "MONGODB_URL",
+    "mongodb://localhost:27017",
 )
-from sqlalchemy.orm import DeclarativeBase
-from redis.asyncio import ConnectionPool, Redis
+DATABASE_NAME = os.getenv("DATABASE_NAME", "intel_dashboard")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/intel_dashboard",
-)
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/intel_dashboard",
-)
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-LIVE_FEED_CHANNEL = "live_threat_feed"
-
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    pool_size=20,
-    max_overflow=10,
-    pool_pre_ping=True,
-    pool_recycle=1800,
-)
-
-AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False,
-)
+# Create MongoDB client
+client: AsyncClient = None
+db: AsyncDatabase = None
 
 
-class Base(DeclarativeBase):
-    pass
+async def connect_to_mongo():
+    """Connect to MongoDB on app startup"""
+    global client, db
+    try:
+        client = AsyncClient(MONGODB_URL)
+        db = client[DATABASE_NAME]
+        # Verify connection
+        await client.admin.command('ping')
+        print(f"Connected to MongoDB: {DATABASE_NAME}")
+        # Create indexes
+        await create_indexes()
+    except Exception as e:
+        print(f"Failed to connect to MongoDB: {e}")
+        raise
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with AsyncSessionLocal() as session:
-        try:
-            yield session
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+async def close_mongo_connection():
+    """Close MongoDB connection on app shutdown"""
+    global client
+    if client:
+        client.close()
+        print("MongoDB connection closed")
 
 
-# --- Redis connection pool (foundation for high-frequency cache reads) ---
-redis_pool: ConnectionPool = ConnectionPool.from_url(
-    REDIS_URL,
-    max_connections=50,
-    decode_responses=True,
-)
+async def create_indexes():
+    """Create database indexes for better performance"""
+    try:
+        # Officers collection indexes
+        officers = db["officers"]
+        await officers.create_index("email", unique=True)
+        await officers.create_index("is_active")
+        
+        # ThreatPosts collection indexes
+        threats = db["threat_posts"]
+        await threats.create_index("platform")
+        await threats.create_index("threat_level")
+        await threats.create_index("is_resolved")
+        await threats.create_index("timestamp", background=True)
+        
+        print("Database indexes created successfully")
+    except Exception as e:
+        print(f"Error creating indexes: {e}")
 
 
-def get_redis() -> Redis:
-    return Redis(connection_pool=redis_pool)
+def get_database() -> AsyncDatabase:
+    """Get the MongoDB database instance"""
+    if db is None:
+        raise RuntimeError("Database not initialized. Call connect_to_mongo() first.")
+    return db
+
+
+def get_officers_collection() -> AsyncCollection:
+    """Get the officers collection"""
+    return get_database()["officers"]
+
+
+def get_threats_collection() -> AsyncCollection:
+    """Get the threat_posts collection"""
+    return get_database()["threat_posts"]
 
 
 @asynccontextmanager
 async def lifespan_resources():
     """Call on app startup/shutdown to validate connectivity and dispose cleanly."""
     try:
-        r = get_redis()
-        await r.ping()
+        await connect_to_mongo()
         yield
     finally:
-        await redis_pool.disconnect()
-        await engine.dispose()
+        await close_mongo_connection()

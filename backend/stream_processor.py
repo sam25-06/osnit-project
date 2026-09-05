@@ -1,9 +1,7 @@
-# stream_processor.py
 """
-Standalone async Kafka consumer. Run as its own process/deployment:
+Standalone async Kafka consumer for MongoDB. Run as its own process/deployment:
     python stream_processor.py
-Deliberately decoupled from the FastAPI process — broadcasts to
-WebSocket clients via Redis pub/sub rather than in-memory state.
+Consumes threat posts from Kafka and writes to MongoDB.
 """
 import asyncio
 import json
@@ -17,7 +15,7 @@ from aiokafka.errors import KafkaConnectionError
 
 import crud
 import schemas
-from database import AsyncSessionLocal, LIVE_FEED_CHANNEL, get_redis
+from database import get_threats_collection, connect_to_mongo, close_mongo_connection
 
 logging.basicConfig(
     level=logging.INFO,
@@ -61,7 +59,8 @@ def mock_nlp_analysis(content: str) -> tuple[int, float]:
     return threat_level, round(panic_score, 2)
 
 
-async def handle_message(raw_value: bytes) -> None:
+async def handle_message(threats_collection, raw_value: bytes) -> None:
+    """Process a single Kafka message and store in MongoDB"""
     try:
         payload = json.loads(raw_value.decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -83,26 +82,23 @@ async def handle_message(raw_value: bytes) -> None:
         panic_score=panic_score,
     )
 
-    async with AsyncSessionLocal() as db:
-        post = await crud.create_threat_post(db, post_in)
-
-    post_out = schemas.ThreatPostRead.model_validate(post).model_dump(mode="json")
-
-    redis_client = get_redis()
-    await redis_client.publish(LIVE_FEED_CHANNEL, json.dumps(post_out))
+    post = await crud.create_threat_post(threats_collection, post_in)
 
     logger.info(
         "Processed post %s | platform=%s level=%s panic=%s",
-        post_out["id"], platform, threat_level, panic_score,
+        str(post.id), platform, threat_level, panic_score,
     )
 
 
 async def consume() -> None:
+    """Kafka consumer loop"""
+    threats_collection = get_threats_collection()
+
     consumer = AIOKafkaConsumer(
         KAFKA_TOPIC,
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
         group_id=KAFKA_GROUP_ID,
-        enable_auto_commit=False,       # commit manually after DB + publish succeed
+        enable_auto_commit=False,       # commit manually after DB write succeeds
         auto_offset_reset="earliest",
         value_deserializer=lambda v: v,  # raw bytes; we decode ourselves for error isolation
     )
@@ -127,7 +123,7 @@ async def consume() -> None:
             if _shutdown_event.is_set():
                 break
             try:
-                await handle_message(msg.value)
+                await handle_message(threats_collection, msg.value)
                 await consumer.commit()
             except Exception:
                 # Isolate per-message failures — log and move on rather than
@@ -144,6 +140,10 @@ def _handle_shutdown_signal(*_args) -> None:
 
 
 async def main() -> None:
+    # Connect to MongoDB at startup
+    await connect_to_mongo()
+    logger.info("Connected to MongoDB")
+
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
         try:
@@ -151,7 +151,11 @@ async def main() -> None:
         except NotImplementedError:
             pass  # Windows fallback — Ctrl+C still raises KeyboardInterrupt
 
-    await consume()
+    try:
+        await consume()
+    finally:
+        await close_mongo_connection()
+        logger.info("Disconnected from MongoDB")
 
 
 if __name__ == "__main__":
